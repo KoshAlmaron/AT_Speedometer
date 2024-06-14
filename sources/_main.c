@@ -17,6 +17,10 @@
 #include "oled.h"				// Управление OLED на базе SSD1306.
 
 #include "fonts.h"				// Шрифты.
+#include "tcudata.h"			// Данные от АКПП.
+#include "uart.h"				// UART.
+#include "configuration.h"		// Настройки.
+
 
 //#define DEBUG_MODE
 #ifdef DEBUG_MODE
@@ -33,6 +37,7 @@ uint16_t SensorTimer = 0;
 uint16_t OledUpTimer = 0;
 int16_t OledDownTimer = -300;
 uint16_t SecondsTimer = 0;
+int16_t AlarmBoxTimer = 0;
 
 #define Digit_width 13
 #define Digit_height 26
@@ -43,6 +48,7 @@ static void eeprom_read();
 static void eeprom_write();
 static void oled_odometer(uint32_t DistanceKM);
 static void oled_speed(uint16_t Speed);
+static void oled_at_mode();
 static void draw_animation(uint8_t x, char CurrDigit, char NextDigit, uint8_t Offset);
 static void enable_int0();
 static void selector_pins_init();
@@ -56,6 +62,7 @@ int main() {
 		i2c_init();			// Настройка I2C.
 		enable_int0();		// Прерывание при выключении ЗЗ.
 		eeprom_read();
+		uart_init(1);
 	sei();
 
 	// Вывод со светодиодом.
@@ -113,6 +120,9 @@ static void loop() {
 		OledUpTimer += TimerAdd;		
 		OledDownTimer += TimerAdd;
 		SecondsTimer += TimerAdd;
+
+		AlarmBoxTimer += TimerAdd;
+		if (AlarmBoxTimer > 800) {AlarmBoxTimer = -800;}
 	}
 
 	// Обработка датчиков.
@@ -136,18 +146,22 @@ static void loop() {
 	if (OledUpTimer >= 35 && i2c_ready()) {
 		OledUpTimer = 0;
 		oled_odometer(Distance / 1000);
-		//oled_odometer(get_car_distance() - ((get_car_distance() / 1000) * 1000));
 	}
+
 	// Вывод скорости на нижний OLED.
-	if (OledDownTimer >= 200 && i2c_ready()) {
+	if (OledDownTimer >= 150 && i2c_ready()) {
 		OledDownTimer = 0;
 
 		#ifdef DEBUG_MODE
 			oled_speed(SpeedTest);
 			sm_set_target(SpeedTest);
 		#else
-			oled_speed(get_car_speed());
 			sm_set_target(get_car_speed());	// Установка стрелки.
+			#ifdef SHOW_ATMODE
+				oled_at_mode();
+			#else
+				oled_speed(get_car_speed());
+			#endif
 		#endif
 	}
 }
@@ -191,10 +205,10 @@ static void oled_odometer(uint32_t DistanceKM) {
 
 static void oled_speed(uint16_t Speed) {
 	Speed = Speed >> SPEED_BIT_SHIFT;
-	//return;
+
 	// Буферы для отображения скорости в виде строки.
 	char SpeedStr[4] = {0};
-	snprintf(SpeedStr, 7, "%3u", Speed);
+	snprintf(SpeedStr, 4, "%3u", Speed);
 	oled_clear_buffer();
 
 	oled_set_font(Font_Logisoso_32_tn);
@@ -206,6 +220,68 @@ static void oled_speed(uint16_t Speed) {
 	oled_print_string(Shift, 0, SpeedStr, 3);
 	display_select(1);
 	oled_send_data();
+}
+
+static void oled_at_mode() {
+	if (DataStatus != 2) {return;}
+	oled_clear_buffer();
+
+	// oled_set_font(At_modes_22x11);
+	// for (uint8_t i = 0; i < 7; i++) {
+	// 	oled_print_char(17*i , 0, i+4);
+	// }
+	// oled_send_data();
+	// return;
+
+	oled_set_font(At_modes_22x11);
+	oled_print_char(3, 5, TCU.Selector);
+	oled_print_char(26, 5, TCU.ATMode);
+	oled_draw_frame(22, 1, 19, 30);
+
+	oled_set_font(Gears_32x16);
+	oled_print_char(60, 0, TCU.Gear + 1);
+
+	oled_draw_v_line(52, 0, 32);
+	oled_draw_v_line(53, 0, 32);
+	oled_draw_v_line(82, 0, 32);
+	oled_draw_v_line(83, 0, 32);
+
+	oled_set_font(Font_Logisoso_22_tn);
+	char Str[4] = {0};
+	snprintf(Str, 4, "%3i", TCU.OilTemp);
+	for (uint8_t i = 0; i < 4; i++) {
+		if (Str[i] == ' ') {Str[i] = 0x3b;}		// Вставка пустышки.
+		if (Str[i] == '-') {Str[i] = 0x3a;}		// Вставка знака минусы.
+	}
+	oled_print_string(88, 5, Str, 3);
+
+	if (TCU.Glock) {
+		oled_draw_v_line(49, 0, 32);
+		oled_draw_v_line(50, 0, 32);
+		oled_draw_v_line(85, 0, 32);
+		oled_draw_v_line(86, 0, 32);
+	}
+
+	if (AlarmBoxTimer > 0) {
+		oled_draw_mode(1);
+		if (TCU.OilTemp > OIL_MAX_TEMP) {	// Индикация перегрева.
+			if (TCU.OilTemp < 100) {oled_draw_box(98, 3, 30, 26);}
+			else {oled_draw_box(88, 3, 40, 26);}
+		}
+		if (TCU.Selector == 9) {			// Ошибка селектора.
+			oled_draw_box(1, 2, 15, 28);
+		}
+		if (TCU.ATMode == 9) {				// Ошибка АКПП.
+			oled_draw_box(23, 2, 17, 28);
+		}
+		if (TCU.SlipDetected) {				// Обнаружено проскальзывание фрикционов.
+			oled_draw_box(57, 0, 22, 32);
+		}
+		oled_draw_mode(0);
+	}
+
+	oled_send_data();
+	DataStatus = 0;
 }
 
 static void draw_animation(uint8_t x, char CurrDigit, char NextDigit, uint8_t Offset) {

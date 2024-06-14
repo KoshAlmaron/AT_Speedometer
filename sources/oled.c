@@ -3,12 +3,11 @@
 #include "i2c.h"			// I2C (TWI).
 #include <avr/pgmspace.h>	// Работа с PROGMEM.
 
-
 #include "uart.h"				// UART.
 /***********!!! НЕЛЬЗЯ ТРОГАТЬ БУФЕР ПОКА ОН НЕ ОТПРАВЛЕН !!!************/
 
 #define OLED_WIDTH	128
-#define OLED_HEIGHT	32
+#define OLED_HEIGHT	64
 
 #define DATA_BUFFER_SIZE OLED_WIDTH * OLED_HEIGHT / 8
 #define SEND_BUFFER_SIZE DATA_BUFFER_SIZE + 14
