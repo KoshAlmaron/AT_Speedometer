@@ -12,18 +12,20 @@ volatile uint16_t OutputShaftPeriod = UINT16_MAX;
 // Предыдущий нужен для определения случайных срабатываний.
 volatile uint16_t OutputShaftPeriodPrev = UINT16_MAX;
 
-
 // Кольцевые буферы для замера оборотов, прохождение 1 зуба шагах таймера (4 мкс).
 #define BUFFER_SIZE 16
 #define BUFFER_BITE_SHIFT 4
 uint16_t SpeedArray[BUFFER_SIZE] = {0};
-// Теккущая позиция в буфере.
+// Текущая позиция в буфере.
 uint8_t SpeedPos = 0;
 // Обороты валов.
 uint16_t CarSpeed = 0;
 
 volatile uint16_t ImpulseCount = 0;	// Кол-во импульсов для расчета пробега.
 volatile uint32_t Distance = 0;		// Общий пробег в метрах.
+
+// Количество импульсов на 1 километр
+uint16_t ImpulseKM = IMPULSE_PER_KM_MT;
 
 // Расчет скорости авто.
 void calculate_car_speed() {
@@ -35,7 +37,7 @@ void calculate_car_speed() {
 	// Обороты = (25 * [Импульсов на 1 км]) / Period
 	// Забираем значение из переменной с прерываниями.
 
-	#define SPEED_CALC_COEF (25LU * IMPULSE_PER_KM)
+	#define SPEED_CALC_COEF (uint32_t) (25LU * ImpulseKM)
 
 	uint16_t Period = 0;
 	cli();
@@ -63,10 +65,14 @@ uint16_t get_car_speed() {
 	return CarSpeed;
 }
 
+void set_impulse_per_km(uint16_t Value) {
+	ImpulseKM = Value;
+}
+
 // Возвращает пробег автомобиля с метрами.
 uint32_t get_car_distance() {
 	cli();
-		uint32_t DistFull = (Distance + ((uint32_t) ImpulseCount * 1000) / IMPULSE_PER_KM);
+		uint32_t DistFull = (Distance + ((uint32_t) ImpulseCount * 1000) / ImpulseKM);
 	sei();
 	return DistFull;
 }
@@ -79,9 +85,9 @@ ISR (TIMER1_CAPT_vect) {
 	OutputShaftPeriodPrev = OutputShaftPeriod;
 	OutputShaftPeriod = ICR1;
 
-	// Подсчет пробега, IMPULSE_PER_KM импульсов метр.
+	// Подсчет пробега, ImpulseKM импульсов метр.
 	ImpulseCount++;
-	if (ImpulseCount >= IMPULSE_PER_KM) {
+	if (ImpulseCount >= ImpulseKM) {
 		ImpulseCount = 0;
 		Distance += 1000;
 	}

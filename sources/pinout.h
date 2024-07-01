@@ -6,8 +6,8 @@
 	#define SM_DIR_PIN D, 4
 	#define SM_STEP_PIN D, 5
 	
-	#define OLED_0_EN_PIN C, 3
-	#define OLED_1_EN_PIN C, 2
+	#define OLED_0_EN_PIN C, 2
+	#define OLED_1_EN_PIN C, 3
 
 	#define LED_PIN B, 5
 
@@ -31,8 +31,8 @@
 
 	A0 PC0	(ADC0)			| 
 	A1 PC1	(ADC0)			|
-	A2 PC2	(ADC0)			|	Включение экрана 1.
-	A3 PC3	(ADC0)			|	Включение экрана 0.
+	A2 PC2	(ADC0)			|	Включение экрана 0.
+	A3 PC3	(ADC0)			|	Включение экрана 1.
 	A4 PC4	(ADC0) (SDA)	|	I2C
 	A5 PC5	(ADC0) (SCL)	|	I2C
 */

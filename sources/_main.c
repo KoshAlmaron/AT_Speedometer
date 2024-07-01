@@ -42,6 +42,9 @@ int16_t AlarmBoxTimer = 0;
 #define Digit_width 13
 #define Digit_height 26
 
+// Флаг включения отображения состояния АКПП на нижний экран.
+uint8_t ATModeShow = 0;
+
 // Прототипы локальных функций.
 static void loop();
 static void eeprom_read();
@@ -148,7 +151,13 @@ static void loop() {
 		oled_odometer(Distance / 1000);
 	}
 
-	// Вывод скорости на нижний OLED.
+	// Если есть данные с АКПП, то переключаем режим нижнего экрана.
+	if (!ATModeShow && DataStatus == 2) {
+		ATModeShow = 1;
+		set_impulse_per_km(IMPULSE_PER_KM_AT);
+	}
+
+	// Вывод скорости или состояния АКПП на нижний OLED.
 	if (OledDownTimer >= 150 && i2c_ready()) {
 		OledDownTimer = 0;
 
@@ -156,12 +165,9 @@ static void loop() {
 			oled_speed(SpeedTest);
 			sm_set_target(SpeedTest);
 		#else
-			sm_set_target(get_car_speed());	// Установка стрелки.
-			#ifdef SHOW_ATMODE
-				oled_at_mode();
-			#else
-				oled_speed(get_car_speed());
-			#endif
+			sm_set_target(get_car_speed());		// Установка стрелки.
+			if (ATModeShow) {oled_at_mode();}	// Состояние АКПП.
+			else {oled_speed(get_car_speed());}	// Скорость.
 		#endif
 	}
 }
@@ -234,9 +240,9 @@ static void oled_at_mode() {
 	// return;
 
 	oled_set_font(At_modes_22x11);
-	oled_print_char(3, 5, TCU.Selector);
-	oled_print_char(26, 5, TCU.ATMode);
-	oled_draw_frame(22, 1, 19, 30);
+	oled_print_char(6, 5, TCU.Selector);
+	oled_print_char(27, 5, TCU.ATMode);
+	oled_draw_frame(23, 1, 19, 30);
 
 	oled_set_font(Gears_32x16);
 	oled_print_char(60, 0, TCU.Gear + 1);
@@ -269,10 +275,10 @@ static void oled_at_mode() {
 			else {oled_draw_box(88, 3, 40, 26);}
 		}
 		if (TCU.Selector == 9) {			// Ошибка селектора.
-			oled_draw_box(1, 2, 15, 28);
+			oled_draw_box(4, 2, 15, 28);
 		}
 		if (TCU.ATMode == 9) {				// Ошибка АКПП.
-			oled_draw_box(23, 2, 17, 28);
+			oled_draw_box(24, 2, 17, 28);
 		}
 		if (TCU.SlipDetected) {				// Обнаружено проскальзывание фрикционов.
 			oled_draw_box(57, 0, 22, 32);
@@ -280,6 +286,7 @@ static void oled_at_mode() {
 		oled_draw_mode(0);
 	}
 
+	display_select(1);
 	oled_send_data();
 	DataStatus = 0;
 }
