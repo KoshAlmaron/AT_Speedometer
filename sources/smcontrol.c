@@ -13,13 +13,13 @@
 	не требуется.
 */
 
-#define SM_MAX_STEPS 740		// Максимальное количество шагов ШД.
-#define SM_INIT_STEPS 620		// Количество шагов ШД до конца циферблата.
-#define ACC_MAP_MAX 10			// Максимальная позиция в карте.
+#define SM_MAX_STEPS 370		// Максимальное количество шагов ШД.
+#define SM_INIT_STEPS 310		// Количество шагов ШД до конца циферблата.
+#define ACC_MAP_MAX 7			// Максимальная позиция в карте.
 
 volatile uint8_t SMInit = 0;	// Флаг инициализации.
 
-uint8_t AccMap[] = {0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4};	// Карта ускорения.
+uint8_t AccMap[] = {0, 1, 1, 2, 2, 3, 3, 4};			// Карта ускорения.
 volatile uint8_t ACCPos = ACC_MAP_MAX;					// Текущая позиция ускорения.
 volatile uint16_t SPDTimer = 0;							// Таймер для управления скоростью ШД.
 
@@ -32,8 +32,7 @@ volatile uint16_t Target = 0;						// Целевая позиция.
 volatile int8_t Direction = 0;
 
 // Таблиц соответствия шагов и сокрости.
-uint16_t StepArray[21] = {0, 39, 74, 105, 139, 174, 209, 243, 278, 313, 346, 380, 414, 449, 482, 516, 549, 584, 618, 652, 686};
-
+uint16_t StepArray[21] = {0, 20, 37, 53, 70, 87, 105, 122, 139, 157, 173, 190, 207, 225, 241, 258, 275, 292, 309, 326, 343};
 static uint16_t get_interpolated_value(uint16_t x, uint16_t* ArrayY, uint8_t ArraySize);
 
 // Настройка выводов.
@@ -54,8 +53,6 @@ void sm_set_target(uint16_t Speed) {
 	cli();
 		Dir = Direction;
 	sei();
-
-	Speed += 1 << SPEED_BIT_SHIFT;		// Добавка к показанию.
 
 	if (!Dir) {Target = get_interpolated_value(Speed, StepArray, 21);}
 	sei();

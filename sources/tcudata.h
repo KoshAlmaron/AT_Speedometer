@@ -1,7 +1,7 @@
-// Режимы АКПП.
+// Структура данных.
 
-#ifndef _ATMODE_H_
-	#define _ATMODE_H_
+#ifndef _TCUDATA_H_
+	#define _TCUDATA_H_
 
 	void draw_at_mode();
 

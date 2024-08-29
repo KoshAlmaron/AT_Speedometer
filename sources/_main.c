@@ -5,6 +5,7 @@
 #include <avr/eeprom.h>			// Работа с EEPROM.
 #include <avr/pgmspace.h>		// Работа с PROGMEM.
 #include <avr/wdt.h>			// Сторожевой собак.
+#include <util/delay.h>			// Задержки.
 
 #include "macros.h"				// Макросы.
 #include "pinout.h"				// Начначение выводов контроллера.
@@ -44,6 +45,8 @@ int16_t AlarmBoxTimer = 0;
 
 // Флаг включения отображения состояния АКПП на нижний экран.
 uint8_t ATModeShow = 0;
+
+volatile uint8_t PowerOff = 0;	// Флаг отключения питания.
 
 // Прототипы локальных функций.
 static void loop();
@@ -103,8 +106,15 @@ static void eeprom_read() {
 }
 
 static void eeprom_write() {
+	wdt_reset();		// Сброс сторожевого таймера.
 	//Distance = 182400000; // 14.05.2024
-	eeprom_write_dword(0, get_car_distance());	// 0-3
+	//Distance = 183500000; // 23.08.2024
+	eeprom_update_dword(0, get_car_distance());	// 0-3
+
+	for (uint8_t i = 0; i < 10; i++) {
+		wdt_reset();
+		_delay_ms(100);
+	}
 }
 
 // Основной цикл.
@@ -116,6 +126,11 @@ static void loop() {
 		TimerAdd = MainTimer;
 		MainTimer = 0;
 	sei();
+
+	if (PowerOff) {
+		eeprom_write();
+		PowerOff = 0;
+	}
 
 	// Счетчики времени.
 	if (TimerAdd) {
@@ -131,7 +146,6 @@ static void loop() {
 	// Обработка датчиков.
 	if (SensorTimer >= 50) {
 		SensorTimer = 0;
-		calculate_car_speed();
 	}
 
 	if (SecondsTimer >= 1000) {
@@ -211,6 +225,7 @@ static void oled_odometer(uint32_t DistanceKM) {
 
 static void oled_speed(uint16_t Speed) {
 	Speed = Speed >> SPEED_BIT_SHIFT;
+	Speed = MIN(180, Speed);
 
 	// Буферы для отображения скорости в виде строки.
 	char SpeedStr[4] = {0};
@@ -296,7 +311,7 @@ static void draw_animation(uint8_t x, char CurrDigit, char NextDigit, uint8_t Of
 	const uint8_t* NextXBM = oled_get_char_array(NextDigit);
 	CurrXBM+= ((Digit_width + 7) >> 3) * Offset;
 
-	uint8_t CurrY = max(0, 3 - Offset);
+	uint8_t CurrY = MAX(0, 3 - Offset);
 	if (Offset <= Digit_height && CurrDigit) {
 		oled_draw_xbmp(x, CurrY, CurrXBM, Digit_width, Digit_height - Offset);
 	}
@@ -333,8 +348,8 @@ static void enable_int0() {
 
 // Прерывание при выключении ЗЗ.
 ISR (INT0_vect) {
-	eeprom_write();
-	PIN_TOGGLE(LED_PIN);
+	PowerOff = 1;
+	//PIN_TOGGLE(LED_PIN);
 }
 
 // Прерывание при совпадении регистра сравнения OCR0A на таймере 0 каждую 1мс. 

@@ -54,7 +54,7 @@ uint8_t i2c_ready() {
 // Возвращает статус интерфейса.
 uint8_t i2c_get_status() {
 	cli();
-	uint8_t CurrentStatus = Status;	// Текущий статус TWI.
+		uint8_t CurrentStatus = Status;	// Текущий статус TWI.
 	sei();
 	return CurrentStatus;
 }
