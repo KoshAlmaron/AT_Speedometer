@@ -31,7 +31,7 @@ volatile uint16_t Target = 0;						// Целевая позиция.
 // 2 - против часовой.
 volatile int8_t Direction = 0;
 
-// Таблиц соответствия шагов и сокрости.
+// Таблиц соответствия шагов и скорости.
 uint16_t StepArray[21] = {0, 20, 37, 53, 70, 87, 105, 122, 139, 157, 173, 190, 207, 225, 241, 258, 275, 292, 309, 326, 343};
 static uint16_t get_interpolated_value(uint16_t x, uint16_t* ArrayY, uint8_t ArraySize);
 

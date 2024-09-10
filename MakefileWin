@@ -7,7 +7,7 @@ PROJECT = AT_Speedometer
 DEVICE = atmega328p
 F_CPU = 16000000
 BAUD = 115200
-PORT = COM6
+PORT = COM7
 
 # Комманды и опции компиляции
 BIN = C:/avr-gcc/bin/

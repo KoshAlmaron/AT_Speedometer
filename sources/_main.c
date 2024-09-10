@@ -109,6 +109,7 @@ static void eeprom_write() {
 	wdt_reset();		// Сброс сторожевого таймера.
 	//Distance = 182400000; // 14.05.2024
 	//Distance = 183500000; // 23.08.2024
+	//Distance = 183550000; // 31.08.2024
 	eeprom_update_dword(0, get_car_distance());	// 0-3
 
 	for (uint8_t i = 0; i < 10; i++) {
@@ -168,6 +169,7 @@ static void loop() {
 	// Если есть данные с АКПП, то переключаем режим нижнего экрана.
 	if (!ATModeShow && DataStatus == 2) {
 		ATModeShow = 1;
+		// Установка нового значения.
 		set_impulse_per_km(IMPULSE_PER_KM_AT);
 	}
 
@@ -262,10 +264,17 @@ static void oled_at_mode() {
 	oled_set_font(Gears_32x16);
 	oled_print_char(60, 0, TCU.Gear + 1);
 
-	oled_draw_v_line(52, 0, 32);
 	oled_draw_v_line(53, 0, 32);
+	oled_draw_v_line(54, 0, 32);
 	oled_draw_v_line(82, 0, 32);
 	oled_draw_v_line(83, 0, 32);
+
+	// Указатель момента переключения передач.
+	int8_t ShiftY = 28 - (TCU.CarSpeed - TCU.GearDownSpeed) * 28 / (TCU.GearUpSpeed - TCU.GearDownSpeed);
+	uint8_t BoxHeght = 4;
+	if (ShiftY < 0) {BoxHeght = 2;}
+	ShiftY = CONSTRAIN(ShiftY, 0, 30);
+	oled_draw_box(45, ShiftY, 8, BoxHeght);
 
 	oled_set_font(Font_Logisoso_22_tn);
 	char Str[4] = {0};
@@ -277,8 +286,8 @@ static void oled_at_mode() {
 	oled_print_string(88, 5, Str, 3);
 
 	if (TCU.Glock) {
-		oled_draw_v_line(49, 0, 32);
 		oled_draw_v_line(50, 0, 32);
+		oled_draw_v_line(51, 0, 32);
 		oled_draw_v_line(85, 0, 32);
 		oled_draw_v_line(86, 0, 32);
 	}

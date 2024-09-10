@@ -17,6 +17,7 @@ volatile TCU_t TCU = {
 	.SpdTimerVal = 0,
 	.OilTemp = 0,
 	.TPS = 0,
+	.InstTPS = 0,
 	.SLT = 0,
 	.SLN = 0,
 	.SLU = 0,
@@ -31,5 +32,7 @@ volatile TCU_t TCU = {
 	.Break = 0,
 	.EngineWork = 0,
 	.SlipDetected = 0,
-	.Glock = 0
+	.Glock = 0,
+	.GearUpSpeed = 0,
+	.GearDownSpeed = 0
 };

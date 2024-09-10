@@ -2,6 +2,7 @@
 #include <stdint.h>				// Коротние название int.
 
 #include "configuration.h"		// Настройки.
+#include "tcudata.h"			// Данные от АКПП.
 #include "spdsens.h"			// Свой заголовок.
 
 // Минимальное сырое значения для фильтрации ошибочных значений.
@@ -22,16 +23,21 @@ volatile uint32_t Distance = 0;			// Общий пробег в метрах.
 // Количество импульсов на 1 километр
 uint16_t ImpulsePerKM = IMPULSE_PER_KM_MT;
 
+void set_impulse_per_km(uint16_t Count) {
+	ImpulsePerKM = Count;
+}
+
 // Расчет скорости авто.
 uint16_t get_car_speed() {
 	// Считается по количеству импульсов на 1 км.
 	// Скорость = 1000000 / ([Шаг таймера, мкс] * [Кол-во шагов]) * 3600 / [Импульсов на 1 км].
 	// Скорость = (1000000 / (4 * Period)) * (3600 / 6000).
-	// Скорость = 150000 / Period.
-	// Скорость = (25 * [Импульсов на 1 км]) / Period
 
-	#define SPEED_CALC_COEF (uint32_t) (25LU * ImpulsePerKM)
-	
+	#define SPEED_CALC_COEF 150000LU
+
+	// В режиме AT берем скорость от АКПП.
+	if (ImpulsePerKM == IMPULSE_PER_KM_AT) {return (TCU.CarSpeed << SPEED_BIT_SHIFT);}
+
 	BufferReady = 0;	// Запрещаем обновление буфера в прерываниях.
 
 	// Переменные для хранения двух крайних значений.
@@ -64,14 +70,10 @@ uint16_t get_car_speed() {
 
 	// Рассчитываем скорость.
 	uint16_t Speed = 0;
-	if (AVG < UINT16_MAX - 100) {
+	if (AVG < UINT16_MAX - 5) {
 		Speed = (uint32_t) (SPEED_CALC_COEF << SPEED_BIT_SHIFT) / AVG;
 	}
 	return Speed;
-}
-
-void set_impulse_per_km(uint16_t Value) {
-	ImpulsePerKM = Value;
 }
 
 // Возвращает пробег автомобиля с метрами.

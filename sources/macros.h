@@ -6,6 +6,8 @@
 	#define MIN(a,b) ((a)<(b)?(a):(b))
 	#define MAX(a,b) ((a)>(b)?(a):(b))
 	#define ABS(x) ((x)>0?(x):-(x))
+	#define CONSTRAIN(amt, low, high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
+
 
 	// Макросы для работы с целыми портами.
 	#define SET_PORT_MODE(port, data) (DDR ## port = data)
