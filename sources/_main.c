@@ -285,11 +285,18 @@ static void oled_at_mode() {
 	}
 	oled_print_string(88, 5, Str, 3);
 
+	// Гидротрансформаток включен.
 	if (TCU.Glock) {
 		oled_draw_v_line(50, 0, 32);
 		oled_draw_v_line(51, 0, 32);
 		oled_draw_v_line(85, 0, 32);
 		oled_draw_v_line(86, 0, 32);
+	}
+
+	// Идет смена передачи.
+	if (TCU.GearChange) {
+		oled_draw_box(50, 0, 6, 32);
+		oled_draw_box(81, 0, 6, 32);
 	}
 
 	if (AlarmBoxTimer > 0) {
