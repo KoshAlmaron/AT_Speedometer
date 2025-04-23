@@ -34,7 +34,6 @@
 volatile uint8_t MainTimer = 0;
 
 // Счетчики времени.
-uint16_t SensorTimer = 0;
 uint16_t OledUpTimer = 0;
 int16_t OledDownTimer = -300;
 uint16_t SecondsTimer = 0;
@@ -59,6 +58,7 @@ static void draw_animation(uint8_t x, char CurrDigit, char NextDigit, uint8_t Of
 static void enable_int0();
 static void selector_pins_init();
 static void display_select(uint8_t N);
+static void power_off();
 
 int main() {
 	wdt_enable(WDTO_500MS);	// Сторожевой собак на 500 мс.
@@ -110,12 +110,11 @@ static void eeprom_write() {
 	//Distance = 182400000; // 14.05.2024
 	//Distance = 183500000; // 23.08.2024
 	//Distance = 183550000; // 31.08.2024
-	eeprom_update_dword(0, get_car_distance());	// 0-3
+	//Distance = 187051000; // 09.12.2024
+	//Distance = 187329000; // 20.12.2024
+	//Distance = 187332000; // 23.12.2024 
 
-	for (uint8_t i = 0; i < 10; i++) {
-		wdt_reset();
-		_delay_ms(100);
-	}
+	eeprom_update_dword(0, get_car_distance());	// 0-3
 }
 
 // Основной цикл.
@@ -129,24 +128,21 @@ static void loop() {
 	sei();
 
 	if (PowerOff) {
-		eeprom_write();
+		eeprom_write();		// Сохраняем пробег в EEPROM.
+		sm_set_target(0);	// Устанавливаем стрелку на 0.
+		
+		power_off();
 		PowerOff = 0;
 	}
 
 	// Счетчики времени.
 	if (TimerAdd) {
-		SensorTimer += TimerAdd;
 		OledUpTimer += TimerAdd;		
 		OledDownTimer += TimerAdd;
 		SecondsTimer += TimerAdd;
 
 		AlarmBoxTimer += TimerAdd;
-		if (AlarmBoxTimer > 800) {AlarmBoxTimer = -800;}
-	}
-
-	// Обработка датчиков.
-	if (SensorTimer >= 50) {
-		SensorTimer = 0;
+		if (AlarmBoxTimer > 1800) {AlarmBoxTimer = -800;}
 	}
 
 	if (SecondsTimer >= 1000) {
@@ -173,9 +169,18 @@ static void loop() {
 		set_impulse_per_km(IMPULSE_PER_KM_AT);
 	}
 
+	// ATModeShow = 1;
+	// DataStatus = 2;
+	// TCU.GearChange = 1;
+	// TCU.Glock = 1
+
 	// Вывод скорости или состояния АКПП на нижний OLED.
-	if (OledDownTimer >= 150 && i2c_ready()) {
+	if (OledDownTimer >= 55 && i2c_ready()) {
 		OledDownTimer = 0;
+
+		static uint8_t ClipY = 15;
+		oled_set_clip_window(0, ClipY, 127, 31 - ClipY);	// Уменьшаем рабочую область экрана.
+		if (ClipY) {ClipY--;}
 
 		#ifdef DEBUG_MODE
 			oled_speed(SpeedTest);
@@ -185,11 +190,12 @@ static void loop() {
 			if (ATModeShow) {oled_at_mode();}	// Состояние АКПП.
 			else {oled_speed(get_car_speed());}	// Скорость.
 		#endif
+
+		oled_disable_clip_window();
 	}
 }
 
 static void oled_odometer(uint32_t DistanceKM) {
-	//return;
 	static uint8_t Offset = 0;
 	static uint32_t DistanceCurr = 0;
 	static uint32_t DistancePrev = 0;
@@ -198,7 +204,7 @@ static void oled_odometer(uint32_t DistanceKM) {
 	char MileAgeCurr[7] = {0};
 	char MileAgePrev[7] = {0};
 
-	if (DistancePrev == DistanceKM && !Offset) {return;}
+	//if (DistancePrev == DistanceKM && !Offset) {return;}
 	if (!DistanceCurr) {DistanceCurr = DistanceKM;}
 	if (!Offset) {DistanceCurr = DistanceKM;}
 
@@ -249,13 +255,6 @@ static void oled_at_mode() {
 	if (DataStatus != 2) {return;}
 	oled_clear_buffer();
 
-	// oled_set_font(At_modes_22x11);
-	// for (uint8_t i = 0; i < 7; i++) {
-	// 	oled_print_char(17*i , 0, i+4);
-	// }
-	// oled_send_data();
-	// return;
-
 	oled_set_font(At_modes_22x11);
 	oled_print_char(6, 5, TCU.Selector);
 	oled_print_char(27, 5, TCU.ATMode);
@@ -264,17 +263,20 @@ static void oled_at_mode() {
 	oled_set_font(Gears_32x16);
 	oled_print_char(60, 0, TCU.Gear + 1);
 
+	// Вертикальные разделители.
+	oled_draw_v_line(52, 0, 32);
 	oled_draw_v_line(53, 0, 32);
-	oled_draw_v_line(54, 0, 32);
 	oled_draw_v_line(82, 0, 32);
 	oled_draw_v_line(83, 0, 32);
 
 	// Указатель момента переключения передач.
-	int8_t ShiftY = 28 - (TCU.CarSpeed - TCU.GearDownSpeed) * 28 / (TCU.GearUpSpeed - TCU.GearDownSpeed);
-	uint8_t BoxHeght = 4;
-	if (ShiftY < 0) {BoxHeght = 2;}
-	ShiftY = CONSTRAIN(ShiftY, 0, 30);
-	oled_draw_box(45, ShiftY, 8, BoxHeght);
+	if (!TCU.GearChange) {
+		int8_t ShiftY = 28 - (TCU.CarSpeed - TCU.GearDownSpeed) * 28 / (TCU.GearUpSpeed - TCU.GearDownSpeed);
+		uint8_t BoxHeght = 4;
+		if (ShiftY < 0) {BoxHeght = 2;}
+		ShiftY = CONSTRAIN(ShiftY, 0, 30);
+		oled_draw_box(45, ShiftY, 8, BoxHeght);
+	}
 
 	oled_set_font(Font_Logisoso_22_tn);
 	char Str[4] = {0};
@@ -287,16 +289,28 @@ static void oled_at_mode() {
 
 	// Гидротрансформаток включен.
 	if (TCU.Glock) {
+		oled_draw_v_line(49, 0, 32);
 		oled_draw_v_line(50, 0, 32);
-		oled_draw_v_line(51, 0, 32);
 		oled_draw_v_line(85, 0, 32);
 		oled_draw_v_line(86, 0, 32);
 	}
 
-	// Идет смена передачи.
+	// Индикация процесса смены передачи.
 	if (TCU.GearChange) {
-		oled_draw_box(50, 0, 6, 32);
-		oled_draw_box(81, 0, 6, 32);
+		uint8_t Gy = 0;
+		if (TCU.GearChange > 0) {Gy = (800 - AlarmBoxTimer) >> 6;}
+		else {Gy = (800 + AlarmBoxTimer) >> 6;}
+
+		// Нужный знак в зависимости от направления.
+		const uint8_t* Gxbm = (TCU.GearChange > 0) ? Gear_Up_bits : Gear_Down_bits;
+		uint8_t Gw = (TCU.GearChange > 0) ? Gear_Up_width : Gear_Down_width;
+		uint8_t Gh = (TCU.GearChange > 0) ? Gear_Up_height : Gear_Down_height;
+
+		oled_draw_xbmp(48, Gy, Gxbm, Gw, Gh);
+		oled_draw_xbmp(48, Gy + 25, Gxbm, Gw, Gh);
+
+		oled_draw_xbmp(78, Gy + 25, Gxbm, Gw, Gh);
+		oled_draw_xbmp(78, Gy, Gxbm, Gw, Gh);
 	}
 
 	if (AlarmBoxTimer > 0) {
@@ -308,10 +322,10 @@ static void oled_at_mode() {
 		if (TCU.Selector == 9) {			// Ошибка селектора.
 			oled_draw_box(4, 2, 15, 28);
 		}
-		if (TCU.ATMode == 9) {				// Ошибка АКПП.
+		if (TCU.ATMode == 9 || TCU.ATMode != TCU.Selector) {	// Ошибка АКПП.
 			oled_draw_box(24, 2, 17, 28);
 		}
-		if (TCU.SlipDetected) {				// Обнаружено проскальзывание фрикционов.
+		if (TCU.SlipDetected) {		// Обнаружено проскальзывание фрикционов.
 			oled_draw_box(57, 0, 22, 32);
 		}
 		oled_draw_mode(0);
@@ -355,11 +369,31 @@ static void display_select(uint8_t N) {
 // Прерывание INT0 на спадающий фронт сигнала.
 static void enable_int0() {
 	// Пин как вход без подтяжки.
-	DDRD &= ~(1 << 2);
-	PORTD &= ~(1 << 2);
+	SET_PIN_MODE_INPUT(INT_IGN_PIN);
+	SET_PIN_LOW(INT_IGN_PIN);
 
 	EICRA |= (1 << ISC01);		// Falling edge.
 	EIMSK |= (1 << INT0);		// INT0 On
+}
+
+static void power_off() {
+	for (uint8_t i = 0; i < 17; i++) {
+		wdt_reset();	// Пёс.
+
+		oled_set_clip_window(0, i, 127, 31 - i);	// Уменьшаем рабочую область экрана.
+		DataStatus = 2;
+		
+		// Ждем готовности шины и обновляем экраны.
+		while (i2c_ready() == 0) {_delay_ms(1);}
+		oled_odometer(Distance / 1000);		// Пробег.
+		while (i2c_ready() == 0) {_delay_ms(1);}
+		if (ATModeShow) {oled_at_mode();}	// Состояние АКПП.
+		else {oled_speed(get_car_speed());}	// Скорость.
+		_delay_ms(50);
+	}
+
+	while (!PIN_READ(INT_IGN_PIN)) {wdt_reset();}
+	PowerOff = 0;
 }
 
 // Прерывание при выключении ЗЗ.

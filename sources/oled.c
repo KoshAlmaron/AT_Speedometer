@@ -3,7 +3,7 @@
 #include "i2c.h"			// I2C (TWI).
 #include <avr/pgmspace.h>	// Работа с PROGMEM.
 
-#include "uart.h"				// UART.
+#include "uart.h"			// UART.
 /***********!!! НЕЛЬЗЯ ТРОГАТЬ БУФЕР ПОКА ОН НЕ ОТПРАВЛЕН !!!************/
 
 #define OLED_WIDTH	128
@@ -21,8 +21,14 @@ uint8_t *DataBuffer = (SendBuffer + 14);
 // Массив для отправки команд.
 uint8_t CommandBuffer[COMMAND_BUFFER_SIZE];
 
-// Режим отрисовки пикселя, 0 - номальный, 1 - инверсия (XOR).
+// Режим отрисовки пикселя, 0 - номальный, 1 - инверсия (XOR), 2 - стирание.
 uint8_t DrawMode = 0;
+
+// Ограничения для отрисовки пикселей.
+uint8_t Xmin = 0;
+uint8_t Ymin = 0;
+uint8_t Xmax = OLED_WIDTH - 1;
+uint8_t Ymax = OLED_HEIGHT - 1;
 
 // Параметры выбранного шрифта.
 const uint8_t* Font = 0;		// Указатель на массив символов.
@@ -124,11 +130,37 @@ void oled_draw_mode(uint8_t Mode) {
 	DrawMode = Mode;
 }
 
+void oled_set_clip_window(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1) {
+	Xmin = x0;
+	Ymin = y0;
+	Xmax = x1;
+	Ymax = y1;
+}
+
+void oled_disable_clip_window() {
+	Xmin = 0;
+	Ymin = 0;
+	Xmax = OLED_WIDTH - 1;
+	Ymax = OLED_HEIGHT - 1;
+}
+
 void oled_draw_pixel(uint8_t x, uint8_t y) {
+	if (x < Xmin || x > Xmax) {return;}
+	if (y < Ymin || y > Ymax) {return;}
+
 	uint16_t ByteNumber = ((y >> 3) << 7) + x;
 	if (ByteNumber < DATA_BUFFER_SIZE) {
-		if (DrawMode) {DataBuffer[ByteNumber] ^= 1 << (y % 8);}
-		else {DataBuffer[ByteNumber] |= 1 << (y % 8);}
+		switch (DrawMode) {			// Режим отрисовки пикселя.
+			case 0:					// 0 - номальный.
+				DataBuffer[ByteNumber] |= 1 << (y % 8);
+				break;
+			case 1:					// 1 - инверсия (XOR).
+				DataBuffer[ByteNumber] ^= 1 << (y % 8);
+				break;
+			case 2:					// 2 - стирание.
+				DataBuffer[ByteNumber] &= ~(1 << (y % 8));
+				break;
+		}
 	}
 }
 

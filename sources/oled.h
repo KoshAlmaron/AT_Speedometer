@@ -8,6 +8,8 @@
 	void oled_send_data();
 
 	void oled_draw_mode(uint8_t Mode);
+	void oled_set_clip_window(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1);
+	void oled_disable_clip_window();
 	void oled_draw_pixel(uint8_t x, uint8_t y);
 	void oled_draw_h_line(uint8_t x, uint8_t y, uint8_t l);
 	void oled_draw_v_line(uint8_t x, uint8_t y, uint8_t l);

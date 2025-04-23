@@ -3,6 +3,8 @@
 #ifndef _PINOUT_H_
 	#define _PINOUT_H_
 
+	#define INT_IGN_PIN D, 2
+
 	#define SM_DIR_PIN D, 4
 	#define SM_STEP_PIN D, 5
 	
