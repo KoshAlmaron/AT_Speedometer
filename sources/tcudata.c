@@ -14,7 +14,6 @@ volatile TCU_t TCU = {
 	.DrumRPM = 0,
 	.OutputRPM = 0,
 	.CarSpeed = 0,
-	.SpdTimerVal = 0,
 	.OilTemp = 0,
 	.TPS = 0,
 	.InstTPS = 0,
@@ -42,5 +41,7 @@ volatile TCU_t TCU = {
 	.GearChangeSLT = 0,
 	.GearChangeSLN = 0,
 	.GearChangeSLU = 0,
-	.LastPDRTime = 0
+	.LastPDRTime = 0,
+	.CycleTime = 0,
+	.DebugMode = 0
 };
