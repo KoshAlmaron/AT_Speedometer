@@ -11,6 +11,8 @@
 	void uart_send_array();
 	uint8_t uart_tx_ready();
 
+	#define TCU_DATA_PACKET 0x71
+
 	// Спецсимволы в пакете данных
 	#define FOBEGIN  0x40       // '@'  Начало исходящего пакета
 	#define FIOEND   0x0D       // '\r' Конец пакета

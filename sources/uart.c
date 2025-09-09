@@ -13,11 +13,9 @@
 
 #define SET_UBRR ((F_CPU / (8UL * UART_BAUD_RATE)) - 1UL)
 
-#define UART_RX_BUFFER_SIZE 64						// Размер буфера отправки.
-uint8_t	ReceiveBuffer[UART_RX_BUFFER_SIZE] = {0};	// Буфер отправки.
 volatile uint16_t RxBuffPos = 0;					// Позиция в буфере.
 
-uint8_t DataSize = sizeof(TCU);		// Размер пакета данных.
+uint8_t DataSize = sizeof(TCU) + 1;		// Размер пакета данных +1 байт типа данных.
 // Признак, что был принят символ подмены байта.
 volatile uint8_t MarkerByte = 0;
 
@@ -92,9 +90,8 @@ ISR (USART_RX_vect) {
 			MarkerByte = 0;
 			break;
 		case FIOEND:	// Принят завершающий байт.
-			if (RxBuffPos == DataSize) {	// Если длина совпала, то ок.
-				DataStatus = 2;
-			}
+			if (RxBuffPos == DataSize) {DataStatus = 2;}
+			else {DataStatus = 0;}
 			break;
 		case FESC:		// Принят символ подмены байта.
 			MarkerByte = 1;
@@ -104,6 +101,7 @@ ISR (USART_RX_vect) {
 				DataStatus = 0;
 				return;
 			}
+
 		 	if (MarkerByte) {	// Следующий байт после символа подмены.
 		 		switch (OneByte) {
 		 			case TFOBEGIN:
@@ -122,8 +120,18 @@ ISR (USART_RX_vect) {
 		 		}
 		 		MarkerByte = 0;
 		 	}
-			*(TCUAddr + RxBuffPos) = OneByte;
-			RxBuffPos++;
+
+ 		 	if (RxBuffPos == 0) {
+			 	if (OneByte != TCU_DATA_PACKET) {		// Не тот пакет.
+					DataStatus = 0;
+					return;
+				}
+				RxBuffPos++;
+		 	}
+			else {
+				*(TCUAddr + RxBuffPos - 1) = OneByte;
+				RxBuffPos++;
+			}
 			break;
 	}
 }
