@@ -11,7 +11,9 @@ volatile uint8_t DataStatus = 0;
 
 // Инициализация структуры
 volatile TCU_t TCU = {
+	.EngineRPM = 0,
 	.DrumRPM = 0,
+	.DrumRPMDelta = 0,
 	.OutputRPM = 0,
 	.CarSpeed = 0,
 	.OilTemp = 0,
@@ -43,5 +45,8 @@ volatile TCU_t TCU = {
 	.GearChangeSLU = 0,
 	.LastPDRTime = 0,
 	.CycleTime = 0,
-	.DebugMode = 0
+	.DebugMode = 0,
+	.RawTPS = 0,
+	.RawOIL = 0
 };
+

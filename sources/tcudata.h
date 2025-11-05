@@ -7,7 +7,9 @@
 
 	// Структура для хранения переменных.
 	typedef struct TCU_t {
+		uint16_t EngineRPM;			// Обороты двигателя.
 		uint16_t DrumRPM;			// Обороты корзины овердрайва.
+		int16_t DrumRPMDelta;		// Скорость изменения оборотов корзины овердрайва.
 		uint16_t OutputRPM;			// Обороты выходного вала.
 		uint8_t CarSpeed;			// Скорость автомобиля.
 		int16_t OilTemp;			// Температура масла.
@@ -40,6 +42,8 @@
 		uint16_t LastPDRTime;		// Последнее время работы PDR.
 		uint16_t CycleTime;			// Время цикла.
 		uint8_t DebugMode;			// Режим отладки.
+		uint16_t RawTPS;			// Сырые значения АЦП ДПДЗ.
+		uint16_t RawOIL;			// Сырые значения АЦП температуры масла.
 	} TCU_t;
 	
 	extern volatile struct TCU_t TCU; 		// Делаем структуру внешней.

@@ -22,3 +22,8 @@ https://www.youtube.com/watch?v=tFU5FpRuKqU
 https://github.com/ZakKemble/avr-gcc-build/releases/download/v8.3.0-1/avr-gcc-8.3.0-x86-mingw.zip, распаковать в C:\avr-gcc и запустить Make.bat.
 
 Чтобы залить прошивку надо в MakefileWin указать свой COM порт и выполнить команду "Make.bat flash".
+
+
+2025-09-08	197134
+2025-09-22	197292
+2025-11-02	198422
