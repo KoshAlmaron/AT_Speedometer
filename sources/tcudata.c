@@ -47,6 +47,9 @@ volatile TCU_t TCU = {
 	.CycleTime = 0,
 	.DebugMode = 0,
 	.RawTPS = 0,
-	.RawOIL = 0
+	.RawOIL = 0,
+	.AdaptationFlagTPS = 0,
+	.AdaptationFlagTemp = 0,
+	.GearManualMode = 0
 };
 

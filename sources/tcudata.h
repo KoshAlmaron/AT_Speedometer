@@ -9,7 +9,7 @@
 	typedef struct TCU_t {
 		uint16_t EngineRPM;			// Обороты двигателя.
 		uint16_t DrumRPM;			// Обороты корзины овердрайва.
-		int16_t DrumRPMDelta;		// Скорость изменения оборотов корзины овердрайва.
+		int16_t DrumRPMDelta;		// Скорость изменения оборотов корзины овердрайва.		
 		uint16_t OutputRPM;			// Обороты выходного вала.
 		uint8_t CarSpeed;			// Скорость автомобиля.
 		int16_t OilTemp;			// Температура масла.
@@ -44,8 +44,11 @@
 		uint8_t DebugMode;			// Режим отладки.
 		uint16_t RawTPS;			// Сырые значения АЦП ДПДЗ.
 		uint16_t RawOIL;			// Сырые значения АЦП температуры масла.
+		int8_t AdaptationFlagTPS;	// Флаг срабатывания адаптации по ДПДЗ.
+		int8_t AdaptationFlagTemp;	// Флаг срабатывания адаптации по температуре.
+		uint16_t GearManualMode;	// Режим ручного переключения передач (Типтроник).
 	} TCU_t;
-	
+
 	extern volatile struct TCU_t TCU; 		// Делаем структуру внешней.
 	extern volatile uint8_t DataStatus;
 

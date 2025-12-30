@@ -257,6 +257,9 @@ static void oled_at_mode() {
 
 	oled_set_font(At_modes_22x11);
 	oled_print_char(6, 5, TCU.Selector);
+
+	if (TCU.GearManualMode) {TCU.ATMode = 0x0A;}
+
 	oled_print_char(27, 5, TCU.ATMode);
 	oled_draw_frame(23, 1, 19, 30);
 
